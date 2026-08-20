@@ -1,44 +1,67 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 import gspread
 from google.oauth2.service_account import Credentials
 from datetime import datetime
+import os
+import json
 
 app = Flask(__name__)
 
-# Google Sheets authentication
+# --------------------------------------------------
+# GOOGLE SHEETS AUTHENTICATION
+# --------------------------------------------------
+
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
 
-credentials = Credentials.from_service_account_file(
-    "service_account.json",
+service_account_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
+
+if not service_account_json:
+    raise Exception("GOOGLE_SERVICE_ACCOUNT_JSON environment variable is missing")
+
+credentials_info = json.loads(service_account_json)
+
+credentials = Credentials.from_service_account_info(
+    credentials_info,
     scopes=SCOPES
 )
 
 client = gspread.authorize(credentials)
 
-# Google Sheet
+# --------------------------------------------------
+# GOOGLE SHEET
+# --------------------------------------------------
+
 SPREADSHEET_NAME = "Attended"
 WORKSHEET_NAME = "Sheet2"
 
 sheet = client.open(SPREADSHEET_NAME).worksheet(WORKSHEET_NAME)
 
 
+# --------------------------------------------------
+# HOME
+# --------------------------------------------------
+
 @app.route("/")
 def home():
-    return "Google Sheets connection is working!"
+    return "Render → Google Sheets connection is working!"
 
 
-@app.route("/test", methods=["GET"])
+# --------------------------------------------------
+# TEST GOOGLE SHEET
+# --------------------------------------------------
+
+@app.route("/test")
 def test():
 
     try:
 
         test_row = [
-            "TEST001",
-            "Test User",
-            "test@gmail.com",
+            "RENDER001",
+            "Render Test",
+            "render@test.com",
             "9876543210",
             "Test Service",
             "500",
@@ -53,7 +76,7 @@ def test():
 
         return jsonify({
             "success": True,
-            "message": "Test data added to Google Sheet",
+            "message": "Render successfully added data to Google Sheet",
             "data": test_row
         })
 
@@ -65,9 +88,15 @@ def test():
         }), 500
 
 
+# --------------------------------------------------
+# RUN
+# --------------------------------------------------
+
 if __name__ == "__main__":
+
+    port = int(os.environ.get("PORT", 5002))
+
     app.run(
         host="0.0.0.0",
-        port=5002,
-        debug=True
+        port=port
     )
